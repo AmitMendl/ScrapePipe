@@ -1,2 +1,0 @@
-# ScrapePipe
-Fuck you SkillPipe
