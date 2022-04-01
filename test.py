@@ -17,6 +17,7 @@ args = parser.parse_args()
 EMAIL = args.username
 PASSWORD = args.password
 
+URL = "https://www.skillpipe.com/#/bookshelf/books"
 LOGIN_URL = "https://www.skillpipe.com/#/account/login"
 
 def login(browser):
@@ -29,25 +30,25 @@ def login(browser):
     # WAIT FOR WEBSITE TO LOAD 
     time.sleep(10)
 
-    # ENTER INPUT
-    # USERNAME
+    # ENTER USERNAME
     username = browser.find_element_by_name("UserName")
     username.clear()
     username.send_keys(EMAIL)
 
-    # PASSWORD
+    # ENTER PASSWORD
     password = browser.find_element_by_id("Password")
     password.clear()
     password.send_keys(PASSWORD)
     browser.find_element_by_id("login-button").click()
 
     # LOGIN
-    print(browser.current_url)
     time.sleep(3)
-    
+    if browser.current_url == URL:
+        print("Logged in successfully!")
 
+# GET CONTENT FROM A PAGE AND TRANSFORM IT TO A PDF FILE
 def readPage(browser, name, bookname):
-    # get content 
+    
     iframes = browser.find_elements_by_tag_name('iframe')
     browser.switch_to.frame(iframes[0])
     pdfkit.from_string(browser.page_source, f"books/{bookname}/{name}.pdf")
@@ -61,13 +62,13 @@ def readBook(browser, bookname):
     browser.find_element_by_id("button-quickstart-toc").click()
     print(browser.current_url)  
     # pages = browser.find_elements_by_class_name("panel__list__entry--depth-2")
-    titles = browser.find_elements_by_class_name("toc-panel__entry__title")
-    for t in titles:
-        print(t.get_attribute("innerHTML"))
-        t.click()
-        readPage(browser, t.get_attribute("innerHTML"), bookname)
+    pages = browser.find_elements_by_class_name("toc-panel__entry__title")
+    for p in pages:
+        print(p.get_attribute("innerHTML"))
+        p.click()
+        readPage(browser, p.get_attribute("innerHTML"), bookname)
         time.sleep(2)
-    browser.close()
+    # browser.close()
 
 def main():
     # SETUP FIREFOX BROWSER
@@ -75,13 +76,25 @@ def main():
     opts.add_argument("--headless")
     browser = webdriver.Firefox(firefox_options=opts)
     
-    # PAGE MENU
-    
+    # LOGIN
     login(browser)
+    
+    # GET BOOKS INFO
     books = browser.find_elements_by_class_name("book--grid")
-    # GO OVER EACH BOOK
-    books[0].click()
-    readBook(browser, "book1")
+    booknames = [t.get_attribute("innerHTML") for t in browser.find_elements_by_class_name("book__text-container__code")]
+    bookcount = len(books)
+    
+    # GO OVER EACH BOOK (NOT FINISHED)
+    for b in range(bookcount):
+        books[b].click()
+        readBook(browser, booknames[b])
+        
+        # RECONNECT TO BOOK PAGE
+        browser.get(URL)
+        time.sleep(3)
+        
+        # REFRESH BOOK WEBELEMENTS
+        books = browser.find_elements_by_class_name("book--grid")
     
 
 if __name__ == '__main__':
