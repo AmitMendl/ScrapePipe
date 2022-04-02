@@ -3,6 +3,7 @@ import time
 import pdfkit
 import argparse
 from selenium import webdriver
+from PyPDF2 import PdfFileMerger
 from selenium.webdriver import FirefoxOptions
 
 # GET SKILLPIPE USER DETAILS
@@ -20,6 +21,7 @@ PASSWORD = args.password
 URL = "https://www.skillpipe.com/#/bookshelf/books"
 LOGIN_URL = "https://www.skillpipe.com/#/account/login"
 
+# LOGIN TO SKILLPIPE
 def login(browser):
     # ENTER TO LOGIN PAGE
     browser.get(LOGIN_URL)
@@ -46,29 +48,51 @@ def login(browser):
     if browser.current_url == URL:
         print("Logged in successfully!")
 
-# GET CONTENT FROM A PAGE AND TRANSFORM IT TO A PDF FILE
-def readPage(browser, name, bookname):
+# SAVE PAGE AS PDF FILE
+def readPage(browser, name, bookname):    
     
     iframes = browser.find_elements_by_tag_name('iframe')
     browser.switch_to.frame(iframes[0])
     pdfkit.from_string(browser.page_source, f"books/{bookname}/{name}.pdf")
     browser.switch_to.default_content()
 
+# GET CONTENT FROM A PAGE AND TRANSFORM IT TO A PDF FILE
 def readBook(browser, bookname):
+    
     # WAIT FOR PAGE TO LOAD
     time.sleep(10)
     os.mkdir(f"books/{bookname}")
-    print(browser.current_url)  
     browser.find_element_by_id("button-quickstart-toc").click()
-    print(browser.current_url)  
-    # pages = browser.find_elements_by_class_name("panel__list__entry--depth-2")
+    
+    # GET PAGES OF BOOKS
     pages = browser.find_elements_by_class_name("toc-panel__entry__title")
+    
+    # READ PAGES
     for p in pages:
-        print(p.get_attribute("innerHTML"))
+        # print(p.get_attribute("innerHTML"))
         p.click()
         readPage(browser, p.get_attribute("innerHTML"), bookname)
         time.sleep(2)
-    # browser.close()
+        
+    mergepages(bookname)
+
+def mergepages(bookname):
+    
+    merger = PdfFileMerger()
+    
+    # MERGE FILES
+    files = os.listdir(f"books/{bookname}")
+    for file in files:
+        merger.append(open(f"books/{bookname}/{file}", 'rb'))
+        # DELETE MERGED FILE
+        os.remove(file)
+    
+    # CREATE THE MERGED FILE
+    with open(f"books/{bookname}.pdf", "wb") as fout:
+        merger.write(fout)
+        
+    os.rmdir(f"books/{bookname}")
+
 
 def main():
     # SETUP FIREFOX BROWSER
