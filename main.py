@@ -10,8 +10,8 @@ from selenium.webdriver import FirefoxOptions
 parser = argparse.ArgumentParser()
 
 # -u EMAIL/USERNAME -p PASSWORD
-parser.add_argument("-u", "--username", help="User name")
-parser.add_argument("-p", "--password", help="Password")
+parser.add_argument("-u", "--username", help="Skillpipe username/email")
+parser.add_argument("-p", "--password", help="SKillpipe password")
 
 args = parser.parse_args()
 
@@ -44,7 +44,7 @@ def login(browser):
     browser.find_element_by_id("login-button").click()
 
     # LOGIN
-    time.sleep(3)
+    time.sleep(10)
     if browser.current_url == URL:
         print("Logged in successfully!")
 
@@ -60,20 +60,21 @@ def readPage(browser, name, bookname):
 def readBook(browser, bookname):
     
     # WAIT FOR PAGE TO LOAD
-    time.sleep(10)
+    time.sleep(15)
     os.mkdir(f"books/{bookname}")
     browser.find_element_by_id("button-quickstart-toc").click()
     
     # GET PAGES OF BOOKS
     pages = browser.find_elements_by_class_name("toc-panel__entry__title")
-    
+    print(f"Downloading {bookname}...")
     # READ PAGES
     for p in pages:
         # print(p.get_attribute("innerHTML"))
         p.click()
         readPage(browser, p.get_attribute("innerHTML"), bookname)
-        time.sleep(2)
+        time.sleep(3)
         
+    print(f"Merging {bookname}...")
     mergepages(bookname)
 
 def mergepages(bookname):
@@ -85,13 +86,13 @@ def mergepages(bookname):
     for file in files:
         merger.append(open(f"books/{bookname}/{file}", 'rb'))
         # DELETE MERGED FILE
-        os.remove(file)
+        # os.remove(file)
     
     # CREATE THE MERGED FILE
     with open(f"books/{bookname}.pdf", "wb") as fout:
         merger.write(fout)
         
-    os.rmdir(f"books/{bookname}")
+    # os.rmdir(f"books/{bookname}")
 
 
 def main():
@@ -110,12 +111,13 @@ def main():
     
     # GO OVER EACH BOOK (NOT FINISHED)
     for b in range(bookcount):
+        time.sleep(5)
         books[b].click()
         readBook(browser, booknames[b])
         
         # RECONNECT TO BOOK PAGE
         browser.get(URL)
-        time.sleep(3)
+        time.sleep(5)
         
         # REFRESH BOOK WEBELEMENTS
         books = browser.find_elements_by_class_name("book--grid")
