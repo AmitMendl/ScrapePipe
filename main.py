@@ -1,7 +1,9 @@
+from cgitb import reset
 import os
 import time
-import pdfkit
+# import pdfkit
 import argparse
+from xhtml2pdf import pisa
 from selenium import webdriver
 from PyPDF2 import PdfFileMerger
 from selenium.webdriver import FirefoxOptions
@@ -53,8 +55,26 @@ def readPage(browser, name, bookname):
     
     iframes = browser.find_elements_by_tag_name('iframe')
     browser.switch_to.frame(iframes[0])
-    pdfkit.from_string(browser.page_source, f"books/{bookname}/{name}.pdf")
+    
+    #XHTML2PDF
+    page_file = open(f"books/{bookname}/{name}.pdf", 'w+b')
+    pisa_status = pisa.CreatePDF(
+            browser.page_source,        # the HTML to convert
+            dest=page_file              # file handle to recieve result
+    )
+    page_file.close()
+    
+    result = pisa_status.err
+
+    if not result:
+        print("Successfully created PDF")
+    else:
+        print("Error: unable to create the PDF") 
+
+    # pdfkit.from_string(browser.page_source, f"books/{bookname}/{name}.pdf")
     browser.switch_to.default_content()
+    
+    return result
 
 # GET CONTENT FROM A PAGE AND TRANSFORM IT TO A PDF FILE
 def readBook(browser, bookname):
@@ -105,7 +125,7 @@ def main():
     login(browser)
     
     # GET BOOKS INFO
-    books = browser.find_elements_by_class_name("book--grid")
+    books = browser.find_elements_by_class_name("book--grid")[:1]
     booknames = [t.get_attribute("innerHTML") for t in browser.find_elements_by_class_name("book__text-container__code")]
     bookcount = len(books)
     
